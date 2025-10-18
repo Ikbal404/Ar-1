@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>AR Tap Box</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <style>
+      body { margin: 0; overflow: hidden; background: #000; }
+      canvas { display: block; }
+      #tap-instruction {
+        position: absolute;
+        top: 20px;
+        width: 100%;
+        text-align: center;
+        color: white;
+        font-family: sans-serif;
+        font-size: 1.2em;
+      }
+    </style>
+    <script src="https://unpkg.com/three@0.160.0/build/three.min.js"></script>
+    <script type="module">
+      import { ARButton } from 'https://unpkg.com/three@0.160.0/examples/jsm/webxr/ARButton.js';
+
+      // === SCENE & CAMERA ===
+      const scene = new THREE.Scene();
+      const camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 0.01, 20);
+
+      // === RENDERER ===
+      const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+      renderer.setSize(window.innerWidth, window.innerHeight);
+      renderer.xr.enabled = true;
+      document.body.appendChild(renderer.domElement);
+
+      // === LIGHT ===
+      const light = new THREE.HemisphereLight(0xffffff, 0xbbbbff, 1);
+      scene.add(light);
+
+      // === BOX ===
+      const box = new THREE.Mesh(
+        new THREE.BoxGeometry(0.2, 0.2, 0.2),
+        new THREE.MeshStandardMaterial({ color: 0x44aa88 })
+      );
+      box.visible = false; // hanya muncul setelah tap
+      scene.add(box);
+
+      // === HIT TEST VAR ===
+      let hitTestSource = null;
+      let localSpace = null;
+      let hitPosition = new THREE.Vector3();
+      let boxPlaced = false;
+
+      // === AR BUTTON ===
+      document.body.appendChild(ARButton.createButton(renderer, { requiredFeatures: ['hit-test'] }));
+
+      renderer.xr.addEventListener('sessionstart', async () => {
+        const session = renderer.xr.getSession();
+        const viewerSpace = await session.requestReferenceSpace('viewer');
+        hitTestSource = await session.requestHitTestSource({ space: viewerSpace });
+        localSpace = await session.requestReferenceSpace('local');
+
+        // Tambahkan event tap
+        window.addEventListener('touchstart', () => {
+          if (hitPosition) {
+            box.position.copy(hitPosition);
+            box.visible = true;
+            boxPlaced = true;
+          }
+        });
+
+        session.addEventListener('end', () => {
+          hitTestSource = null;
+          localSpace = null;
+          boxPlaced = false;
+          box.visible = false;
+        });
+      });
+
+      // === ANIMATE ===
+      renderer.setAnimationLoop((timestamp, frame) => {
+        if (frame && hitTestSource && !boxPlaced) {
+          const hitTestResults = frame.getHitTestResults(hitTestSource);
+          if (hitTestResults.length > 0) {
+            const pose = hitTestResults[0].getPose(localSpace);
+            hitPosition.set(
+              pose.transform.position.x,
+              pose.transform.position.y,
+              pose.transform.position.z
+            );
+          }
+        }
+        if (box.visible) {
+          box.rotation.y += 0.01;
+        }
+        renderer.render(scene, camera);
+      });
+
+      // === RESIZE ===
+      window.addEventListener('resize', () => {
+        camera.aspect = window.innerWidth / window.innerHeight;
+        camera.updateProjectionMatrix();
+        renderer.setSize(window.innerWidth, window.innerHeight);
+      });
+    </script>
+  </head>
+  <body>
+    <div id="tap-instruction">👆 Arahkan ke lantai & TAP untuk letakkan kotak</div>
+  </body>
+</html>
