@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>AR Button Glass Style</title>
+  <style>
+    body { margin: 0; overflow: hidden; background: #fff; }
+
+    /* Style AR Button bawaan */
+    .ar-button {
+      position: fixed;
+      bottom: 40px;
+      left: 50%;
+      transform: translateX(-50%);
+      padding: 14px 28px;
+      font-size: 18px;
+      font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+      color: white;
+      background: rgba(255, 0, 0, 0.5);
+      border: 1px solid rgba(255, 0, 0, 0.2);
+      border-radius: 18px;
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
+      cursor: pointer;
+      text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+      transition: all 0.3s ease;
+      z-index: 999;
+    }
+
+    .ar-button:hover {
+      background: rgba(255, 0, 0, 0.7);
+      transform: translateX(-50%) scale(1.05);
+    }
+
+    .ar-button:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+  </style>
+</head>
+<body>
+  <!-- Three.js -->
+  <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
+  <script type="module">
+    import { ARButton } from 'https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/webxr/ARButton.js';
+
+    // === Basic setup ===
+    const scene = new THREE.Scene();
+    const camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 0.01, 20);
+    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.xr.enabled = true;
+    document.body.appendChild(renderer.domElement);
+
+    // === Light ===
+    const light = new THREE.HemisphereLight(0xffffff, 0xbbbbff, 1);
+    scene.add(light);
+
+    // === Box ===
+    const box = new THREE.Mesh(
+      new THREE.BoxGeometry(0.2, 0.2, 0.2),
+      new THREE.MeshStandardMaterial({ color: 0xff0000 })
+    );
+    box.position.set(0, 0, -0.5);
+    scene.add(box);
+
+    // === AR Button ===
+    const arButton = ARButton.createButton(renderer, { requiredFeatures: ['hit-test'] });
+    document.body.appendChild(arButton);
+
+    // Tambahkan class untuk styling custom
+    arButton.classList.add('ar-button');
+
+    // === Render loop ===
+    renderer.setAnimationLoop(() => {
+      box.rotation.y += 0.01;
+      renderer.render(scene, camera);
+    });
+
+    // Resize
+    window.addEventListener('resize', () => {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+    });
+  </script>
+</body>
+</html>
